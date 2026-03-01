@@ -70,8 +70,8 @@ npm run ios            # или npm run android
 
 1. **База данных**: создайте БД и примените схему:
    ```bash
-   createdb boom_game
-   psql boom_game -f database/schema.sql
+   createdb shadow_run
+   psql shadow_run -f database/schema.sql
    ```
 
 2. **Backend**:
@@ -90,6 +90,23 @@ npm run ios            # или npm run android
    Для Android-эмулятора в `.env`: `API_URL=http://10.0.2.2:3000`, `WS_URL=ws://10.0.2.2:3000`.
 
 4. **Сценарий**: войдите как «Коп» и как «Бандит» (два устройства/эмулятора или смена аккаунта), включите геолокацию — на карте должны отображаться игроки в радиусе (коп 200 м, бандит 50 м).
+
+## Публикация на GitHub
+
+Репозиторий уже инициализирован (Git). Чтобы отправить проект на GitHub:
+
+1. Создайте новый репозиторий на [github.com](https://github.com/new) (например, `shadow-run` или `mygame`). Не добавляйте README, .gitignore или лицензию — они уже есть в проекте.
+
+2. Подключите удалённый репозиторий и выполните первый push:
+
+```bash
+cd /путь/к/mygame
+git remote add origin https://github.com/ВАШ_USERNAME/ИМЯ_РЕПОЗИТОРИЯ.git
+git branch -M main
+git push -u origin main
+```
+
+Замените `ВАШ_USERNAME` и `ИМЯ_РЕПОЗИТОРИЯ` на свои. Для SSH используйте: `git@github.com:ВАШ_USERNAME/ИМЯ_РЕПОЗИТОРИЯ.git`.
 
 ## Лицензия
 
