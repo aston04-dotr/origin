@@ -1,4 +1,4 @@
-import { API_URL } from '../config';
+const BASE_URL = 'http://10.0.2.2:3000';
 
 type PlayerRole = 'cop' | 'bandit';
 
@@ -35,7 +35,7 @@ export async function register(
   email?: string,
   deviceId?: string
 ): Promise<{ player: Player; session_id: string }> {
-  const res = await fetch(`${API_URL}/api/players/register`, {
+  const res = await fetch(`${BASE_URL}/api/players/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, role, email, device_id: deviceId }),
@@ -65,7 +65,7 @@ export async function register(
 }
 
 export async function getPlayer(id: string): Promise<Player> {
-  const res = await fetch(`${API_URL}/api/players/${id}`);
+  const res = await fetch(`${BASE_URL}/api/players/${id}`);
   if (!res.ok) throw new Error('Player not found');
   return res.json();
 }
@@ -75,7 +75,7 @@ export async function updateLocation(
   playerId: string,
   coords: { lat: number; lon: number; heading?: number; speed_kmh?: number }
 ): Promise<void> {
-  const res = await fetch(`${API_URL}/api/location`, {
+  const res = await fetch(`${BASE_URL}/api/location`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -99,7 +99,7 @@ export async function getNearby(
   lon: number,
   myRole: PlayerRole
 ): Promise<{ visible: VisiblePlayer[] }> {
-  const res = await fetch(`${API_URL}/api/nearby`, {
+  const res = await fetch(`${BASE_URL}/api/nearby`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ player_id: playerId, lat, lon, my_role: myRole }),
@@ -116,7 +116,7 @@ export async function sendAction(
   lat?: number,
   lon?: number
 ): Promise<{ ok: boolean; xp_gained?: number }> {
-  const res = await fetch(`${API_URL}/api/action`, {
+  const res = await fetch(`${BASE_URL}/api/action`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -136,7 +136,7 @@ export async function sendAction(
 }
 
 export async function getInventory(playerId: string): Promise<{ items: Array<{ product_id: string; product_type: string; expires_at?: string }> }> {
-  const res = await fetch(`${API_URL}/api/inventory/${playerId}`);
+  const res = await fetch(`${BASE_URL}/api/inventory/${playerId}`);
   if (!res.ok) throw new Error('Inventory failed');
   return res.json();
 }
