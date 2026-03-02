@@ -8,6 +8,23 @@ const STORAGE_KEYS = {
   sessionId: '@shadowrun/sessionId',
 };
 
+function createOfflinePlayer(username: string, role: 'cop' | 'bandit'): Player {
+  const now = new Date().toISOString();
+  return {
+    id: 'local-' + Date.now(),
+    username: username.trim() || 'Игрок',
+    role,
+    xp: 0,
+    level: 1,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+function createOfflineSessionId(): string {
+  return 'local-session-' + Date.now();
+}
+
 interface AuthState {
   player: Player | null;
   sessionId: string | null;
@@ -23,6 +40,31 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function safeSetItem(key: string, value: string): Promise<void> {
+  try {
+    if (typeof AsyncStorage?.setItem === 'function') {
+      await AsyncStorage.setItem(key, value);
+    }
+  } catch (_) {}
+}
+
+async function safeRemoveItem(key: string): Promise<void> {
+  try {
+    if (typeof AsyncStorage?.removeItem === 'function') {
+      await AsyncStorage.removeItem(key);
+    }
+  } catch (_) {}
+}
+
+async function safeGetItem(key: string): Promise<string | null> {
+  try {
+    if (typeof AsyncStorage?.getItem === 'function') {
+      return await AsyncStorage.getItem(key);
+    }
+  } catch (_) {}
+  return null;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     player: null,
@@ -34,8 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadStored = useCallback(async () => {
     try {
       const [playerJson, sessionId] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.player),
-        AsyncStorage.getItem(STORAGE_KEYS.sessionId),
+        safeGetItem(STORAGE_KEYS.player),
+        safeGetItem(STORAGE_KEYS.sessionId),
       ]);
       const player = playerJson ? (JSON.parse(playerJson) as Player) : null;
       setState((s) => ({ ...s, player, sessionId, loading: false }));
@@ -50,30 +92,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (username: string, role: 'cop' | 'bandit') => {
     setState((s) => ({ ...s, loading: true, error: null }));
+    const name = (username || '').trim() || 'Игрок';
+    let player: Player | null = null;
+    let sessionId: string | null = null;
+
     try {
-      if (typeof apiRegister !== 'function') {
-        throw new Error('API not ready');
+      if (typeof apiRegister === 'function') {
+        const data = await apiRegister(name, role);
+        player = data?.player ?? null;
+        sessionId = data?.session_id ?? data?.sessionId ?? null;
       }
-      const data = await apiRegister(username, role);
-      const player = data?.player;
-      const sessionId = data?.session_id ?? data?.sessionId;
-      if (!player || sessionId == null) {
-        throw new Error('Invalid response from server');
-      }
-      await AsyncStorage.setItem(STORAGE_KEYS.player, JSON.stringify(player));
-      await AsyncStorage.setItem(STORAGE_KEYS.sessionId, String(sessionId));
-      setState({ player, sessionId: String(sessionId), loading: false, error: null });
-    } catch (e: any) {
-      setState((s) => ({ ...s, loading: false, error: e?.message || 'Login failed' }));
-      throw e;
+    } catch (_) {
+      // Игнорируем ошибку API — войдём офлайн
     }
+
+    if (!player || sessionId == null) {
+      player = createOfflinePlayer(name, role);
+      sessionId = createOfflineSessionId();
+    }
+
+    await safeSetItem(STORAGE_KEYS.player, JSON.stringify(player));
+    await safeSetItem(STORAGE_KEYS.sessionId, String(sessionId));
+    setState({ player, sessionId: String(sessionId), loading: false, error: null });
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEYS.player);
-      await AsyncStorage.removeItem(STORAGE_KEYS.sessionId);
-    } catch (_) {}
+    await safeRemoveItem(STORAGE_KEYS.player);
+    await safeRemoveItem(STORAGE_KEYS.sessionId);
     setState({ player: null, sessionId: null, loading: false, error: null });
   }, []);
 
@@ -81,10 +126,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!state.player?.id) return;
     try {
       const player = await getPlayer(state.player.id);
-      await AsyncStorage.setItem(STORAGE_KEYS.player, JSON.stringify(player));
+      await safeSetItem(STORAGE_KEYS.player, JSON.stringify(player));
       setState((s) => ({ ...s, player }));
     } catch (_) {}
   }, [state.player?.id]);
+
+  const value: AuthContextValue = {
+    ...state,
+    login,
+    logout,
+    refreshPlayer,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
   const value: AuthContextValue = {
     ...state,

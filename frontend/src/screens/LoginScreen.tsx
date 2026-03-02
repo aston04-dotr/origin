@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,12 +18,10 @@ export function LoginScreen() {
   const [role, setRole] = useState<'cop' | 'bandit'>('bandit');
 
   const handleSubmit = async () => {
-    const name = username.trim();
-    if (!name) return;
-    if (typeof login === 'function') {
-      try {
-        await login(name, role);
-      } catch (_) {}
+    try {
+      await login(username.trim() || 'Игрок', role);
+    } catch (e: any) {
+      Alert.alert('Ошибка входа', e?.message || 'Не удалось войти');
     }
   };
 
@@ -60,7 +59,7 @@ export function LoginScreen() {
       <TouchableOpacity
         style={[styles.btn, loading && styles.btnDisabled]}
         onPress={handleSubmit}
-        disabled={loading || !username.trim()}
+        disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
