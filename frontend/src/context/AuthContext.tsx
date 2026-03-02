@@ -51,16 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (username: string, role: 'cop' | 'bandit') => {
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
+      if (typeof apiRegister !== 'function') {
+        throw new Error('API not ready');
+      }
       const data = await apiRegister(username, role);
       const player = data?.player;
       const sessionId = data?.session_id ?? data?.sessionId;
       if (!player || sessionId == null) {
         throw new Error('Invalid response from server');
       }
-      await AsyncStorage.multiSet([
-        [STORAGE_KEYS.player, JSON.stringify(player)],
-        [STORAGE_KEYS.sessionId, String(sessionId)],
-      ]);
+      await AsyncStorage.setItem(STORAGE_KEYS.player, JSON.stringify(player));
+      await AsyncStorage.setItem(STORAGE_KEYS.sessionId, String(sessionId));
       setState({ player, sessionId: String(sessionId), loading: false, error: null });
     } catch (e: any) {
       setState((s) => ({ ...s, loading: false, error: e?.message || 'Login failed' }));
@@ -69,7 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.multiRemove([STORAGE_KEYS.player, STORAGE_KEYS.sessionId]);
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.player);
+      await AsyncStorage.removeItem(STORAGE_KEYS.sessionId);
+    } catch (_) {}
     setState({ player: null, sessionId: null, loading: false, error: null });
   }, []);
 
