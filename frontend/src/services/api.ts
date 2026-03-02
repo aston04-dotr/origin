@@ -40,11 +40,28 @@ export async function register(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, role, email, device_id: deviceId }),
   });
+  const raw = await res.text();
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || res.statusText);
+    let errMsg = res.statusText;
+    try {
+      const err = JSON.parse(raw);
+      if (err && typeof err.error === 'string') errMsg = err.error;
+    } catch (_) {}
+    throw new Error(errMsg);
   }
-  return res.json();
+  try {
+    const data = JSON.parse(raw);
+    if (!data || typeof data.player !== 'object' || (data.session_id == null && data.sessionId == null)) {
+      throw new Error('Invalid response format');
+    }
+    return {
+      player: data.player,
+      session_id: data.session_id != null ? String(data.session_id) : String(data.sessionId),
+    };
+  } catch (e) {
+    if (e instanceof SyntaxError) throw new Error('Invalid response from server');
+    throw e;
+  }
 }
 
 export async function getPlayer(id: string): Promise<Player> {

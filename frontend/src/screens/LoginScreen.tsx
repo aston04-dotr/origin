@@ -19,6 +19,10 @@ export function LoginScreen() {
   const handleSubmit = async () => {
     const name = username.trim();
     if (!name) return;
+    if (typeof login !== 'function') {
+      console.error('AuthContext: login is not a function');
+      return;
+    }
     try {
       await login(name, role);
     } catch (_) {}

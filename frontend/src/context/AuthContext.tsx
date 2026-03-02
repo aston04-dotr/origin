@@ -1,11 +1,11 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Player } from '../services/api';
-import * as api from '../services/api';
+import { register as apiRegister, getPlayer } from '../services/api';
 
 const STORAGE_KEYS = {
-  player: '@boom/player',
-  sessionId: '@boom/sessionId',
+  player: '@shadowrun/player',
+  sessionId: '@shadowrun/sessionId',
 };
 
 interface AuthState {
@@ -51,12 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (username: string, role: 'cop' | 'bandit') => {
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
-      const { player, session_id } = await api.register(username, role);
+      const data = await apiRegister(username, role);
+      const player = data?.player;
+      const sessionId = data?.session_id ?? data?.sessionId;
+      if (!player || sessionId == null) {
+        throw new Error('Invalid response from server');
+      }
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.player, JSON.stringify(player)],
-        [STORAGE_KEYS.sessionId, session_id],
+        [STORAGE_KEYS.sessionId, String(sessionId)],
       ]);
-      setState({ player, sessionId: session_id, loading: false, error: null });
+      setState({ player, sessionId: String(sessionId), loading: false, error: null });
     } catch (e: any) {
       setState((s) => ({ ...s, loading: false, error: e?.message || 'Login failed' }));
       throw e;
@@ -71,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshPlayer = useCallback(async () => {
     if (!state.player?.id) return;
     try {
-      const player = await api.getPlayer(state.player.id);
+      const player = await getPlayer(state.player.id);
       await AsyncStorage.setItem(STORAGE_KEYS.player, JSON.stringify(player));
       setState((s) => ({ ...s, player }));
     } catch (_) {}
