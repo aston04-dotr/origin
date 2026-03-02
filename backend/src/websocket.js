@@ -3,6 +3,7 @@ const sessionsModel = require('./models/sessions');
 const playersModel = require('./models/players');
 const { checkSpeed, validateCoords } = require('./anticheat');
 const { getVisiblePlayers } = require('./geolocation');
+const activityStore = require('./activity/activityEngine');
 
 const clients = new Map(); // sessionId -> { ws, playerId, role }
 
@@ -73,6 +74,9 @@ function setupWebSocket(server) {
           }));
           const visible = getVisiblePlayers(role, session.last_lat, session.last_lon, withCoords);
           ws.send(JSON.stringify({ type: 'nearby', visible }));
+          const activityZones = activityStore.getNearby(session.last_lat, session.last_lon);
+          ws.send(JSON.stringify({ type: 'activity_zones', zones: activityZones }));
+          return;
         }
       } catch (e) {
         ws.send(JSON.stringify({ type: 'error', error: e.message }));
@@ -100,6 +104,8 @@ async function broadcastNearbyUpdates() {
       }));
       const visible = getVisiblePlayers(role, session.last_lat, session.last_lon, withCoords);
       ws.send(JSON.stringify({ type: 'nearby', visible }));
+      const activityZones = activityStore.getNearby(session.last_lat, session.last_lon);
+      ws.send(JSON.stringify({ type: 'activity_zones', zones: activityZones }));
     } catch (_) {}
   }
 }
