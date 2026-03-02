@@ -37,9 +37,15 @@ export function ShopScreen() {
         order_id: `test_${Date.now()}`,
       }),
     })
-      .then((r) => r.json())
+      .then(async (r) => {
+        const text =
+          typeof r.text === 'function'
+            ? await r.text()
+            : (r as any)._bodyText ?? '';
+        return text ? JSON.parse(text) : {};
+      })
       .then((data) => {
-        if (data.ok) alert('Покупка зачислена (тест)');
+        if (data && data.ok) alert('Покупка зачислена (тест)');
       })
       .catch(() => alert('Ошибка сервера'));
   };

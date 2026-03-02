@@ -2,6 +2,18 @@ const BASE_URL = 'http://10.0.2.2:3000';
 
 type PlayerRole = 'cop' | 'bandit';
 
+/** Безопасное чтение тела ответа без вызова .json() / .text() если их нет */
+async function getResponseBody(res: Response): Promise<string> {
+  if (typeof res.text === 'function') return res.text();
+  const r = res as any;
+  if (typeof r._bodyText === 'string') return r._bodyText;
+  if (typeof r.json === 'function') {
+    const data = await r.json();
+    return typeof data === 'string' ? data : JSON.stringify(data);
+  }
+  return '';
+}
+
 export interface Player {
   id: string;
   username: string;
@@ -40,7 +52,7 @@ export async function register(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, role, email, device_id: deviceId }),
   });
-  const raw = await res.text();
+  const raw = await getResponseBody(res);
   if (!res.ok) {
     let errMsg = res.statusText;
     try {
@@ -66,7 +78,7 @@ export async function register(
 
 export async function getPlayer(id: string): Promise<Player> {
   const res = await fetch(`${BASE_URL}/api/players/${id}`);
-  const text = await res.text();
+  const text = await getResponseBody(res);
   if (!res.ok) throw new Error('Player not found');
   try {
     return JSON.parse(text);
@@ -93,7 +105,7 @@ export async function updateLocation(
     }),
   });
   if (!res.ok) {
-    const errText = await res.text();
+    const errText = await getResponseBody(res);
     let errMsg = res.statusText;
     try {
       const err = JSON.parse(errText);
@@ -114,7 +126,7 @@ export async function getNearby(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ player_id: playerId, lat, lon, my_role: myRole }),
   });
-  const text = await res.text();
+  const text = await getResponseBody(res);
   if (!res.ok) throw new Error('Nearby failed');
   try {
     return JSON.parse(text);
@@ -143,7 +155,7 @@ export async function sendAction(
       lon,
     }),
   });
-  const text = await res.text();
+  const text = await getResponseBody(res);
   if (!res.ok) {
     let errMsg = 'Action failed';
     try {
@@ -161,7 +173,7 @@ export async function sendAction(
 
 export async function getInventory(playerId: string): Promise<{ items: Array<{ product_id: string; product_type: string; expires_at?: string }> }> {
   const res = await fetch(`${BASE_URL}/api/inventory/${playerId}`);
-  const text = await res.text();
+  const text = await getResponseBody(res);
   if (!res.ok) throw new Error('Inventory failed');
   try {
     return JSON.parse(text);
