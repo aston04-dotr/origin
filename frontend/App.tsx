@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import { StatusBar, useColorScheme, View, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -50,7 +50,14 @@ function MainTabs() {
 function AppContent() {
   const { player, sessionId, loading } = useAuth();
 
-  if (loading) return null; // или сплэш
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0f0f1a', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={{ color: '#94a3b8', marginTop: 12 }}>Загрузка...</Text>
+      </View>
+    );
+  }
   if (!player || !sessionId) {
     return <LoginScreen />;
   }

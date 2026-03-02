@@ -66,8 +66,13 @@ export async function register(
 
 export async function getPlayer(id: string): Promise<Player> {
   const res = await fetch(`${BASE_URL}/api/players/${id}`);
+  const text = await res.text();
   if (!res.ok) throw new Error('Player not found');
-  return res.json();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Invalid response');
+  }
 }
 
 export async function updateLocation(
@@ -88,8 +93,13 @@ export async function updateLocation(
     }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Location update failed');
+    const errText = await res.text();
+    let errMsg = res.statusText;
+    try {
+      const err = JSON.parse(errText);
+      if (err && typeof err.error === 'string') errMsg = err.error;
+    } catch (_) {}
+    throw new Error(errMsg);
   }
 }
 
@@ -104,8 +114,13 @@ export async function getNearby(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ player_id: playerId, lat, lon, my_role: myRole }),
   });
+  const text = await res.text();
   if (!res.ok) throw new Error('Nearby failed');
-  return res.json();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Invalid response');
+  }
 }
 
 export async function sendAction(
@@ -128,15 +143,29 @@ export async function sendAction(
       lon,
     }),
   });
+  const text = await res.text();
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Action failed');
+    let errMsg = 'Action failed';
+    try {
+      const err = JSON.parse(text);
+      if (err && typeof err.error === 'string') errMsg = err.error;
+    } catch (_) {}
+    throw new Error(errMsg);
   }
-  return res.json();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Invalid response');
+  }
 }
 
 export async function getInventory(playerId: string): Promise<{ items: Array<{ product_id: string; product_type: string; expires_at?: string }> }> {
   const res = await fetch(`${BASE_URL}/api/inventory/${playerId}`);
+  const text = await res.text();
   if (!res.ok) throw new Error('Inventory failed');
-  return res.json();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Invalid response');
+  }
 }
